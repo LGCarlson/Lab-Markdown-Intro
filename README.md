@@ -40,3 +40,4 @@ You can find a version of Intro_to_RMarkdown.Rmd on my [RPubs](http://rpubs.com/
 
 * There are no cons
 
+Truly, I love using RMarkdown to create stylish and easy to read products for both myself and others. I hope you find this information useful. 
