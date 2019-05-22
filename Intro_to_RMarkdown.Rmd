@@ -1,0 +1,164 @@
+---
+title: "Fun Markdown Example"
+author: "LGCarlson"
+date: "5/22/2019"
+output: html_document
+---
+
+## What is R Markdown? 
+
+>"R Markdown allows you to create documents that serve as a record of your analysis. In the world of reproducible research, we want other researchers to easily understand what we did in our analysis, otherwise nobody can be certain that you analysed your data properly. **You might choose to create an RMarkdown document as an appendix to a paper or project assignment that you are doing, upload it to an online repository such as Github, or simply to keep as a personal record so you can quickly look back at your code and see what you did.** 
+>
+>RMarkdown presents your code alongside its output (graphs, tables, etc.) with conventional text to explain it, a bit like a notebook."
+>
+>RMarkdown uses Markdown syntax. Markdown is a very simple ‘markup’ language which provides methods for creating documents with headers, images, links etc. from plain text files, while keeping the original plain text file easy to read."
+>
+>-from [Coding Club](https://ourcodingclub.github.io/2016/11/24/rmarkdown-1.html)
+
+**Helpful resources:**
+
+* [Markdown documentation from R Studio](https://rmarkdown.rstudio.com/lesson-1.html)
+* [Comprehensive Markdown Guide](https://www.markdownguide.org/)
+* [Formatting Style Guide](https://en.support.wordpress.com/markdown-quick-reference/)
+* [Markdown Cheat Sheet](https://www.rstudio.com/wp-content/uploads/2016/03/rmarkdown-cheatsheet-2.0.pdf)
+
+
+## Why R Markdown? 
+### Pros
+
+* Reproducbility (both for others and your future self)
+* Did I mention reproducibility? With one click (literally), you can reproduce an entire analysis if your dataset is updated, etc 
+* Organization (where did I put that .csv or ggsave object?)
+* Share-ability (easily share or publish knitted files to HTML/RPubs)
+* Annotate-ability (now I'm just making these up... Markdown makes it easy to annotate your code)
+* Insert chunks of Python, Bash, SQL code
+* Treat chunks like functions
+* Make a website
+
+### Cons
+
+* Possible weird functionalities if you're using JAGS
+* Honestly can't think of anything else
+
+
+## First steps
+Install markdown using *install.packages("rmarkdown",dependencies = TRUE)*. Open a new markdown docuent by clicking the dropdown icon where you would normally go to create a new script. 
+```{r,message=FALSE}
+library(rmarkdown)
+```
+
+Above is our first chunk. If you're looking at this in R studio rather than in HTML, you'll see that code chunks are offset by the grave accents (```) at the beginning at end. The "r" inside curly brackets denotes that you're using R code, rather than another type of code. Inside the curly brackets, you can also name the chunk and add rules. 
+
+Chunks can be run alone by clicking the green arrow (far right icon if you're viewing in R Studio). You can also run all chunks above using the downward arrow (right center icon). Finally, you can run a markdown document like you would a normal script. All text outside of the code chunks will be ignored. No more adding and deleting # or seperating important things with #############. 
+
+
+## Parts of an R Markdown Document
+
+_YAML Header_ The first part of a markdown document is the YAML header, which is enclosed above and below by three dashes (---). You can edit this and set a variety of rules in the header that will alter the entire document. 
+
+_Chunks_ Within chunks, you can write and run code just like you would anywhere else. Within the curly brackets, you can title your chunks (ie: "setup" below). You will not see these titles in the rendered version of the document. You can also add rules here:
+
+  *include = FALSE* means that you do not want to include this code or its outputs in the rendered document (the code will still run).
+  
+  *echo = FALSE* means that you want to include the output in your rendered document, but you do not want to see the code. This is useful when you want to display a figure or table, but don't necessarily need to show the code you used to create it. 
+  
+  *warnings = FALSE* means "please do not show me "There were 50 warnings()" when I render this."
+  
+  *messages = FALSE* means that you don't want to see the various messages that pop up when your code runs (even the ones that are not errors), but you still want to see the code and output.
+  
+  *fig.align = "left,right,or center"* change the position of your rendered figure.
+  
+  You can use these rules alone or together. 
+  
+_Figures_ By default, RMarkdown will place graphs by maximising their height, while keeping them within the margins of the page and maintaining aspect ratio. If you have a particularly tall figure, this can mean a really huge graph. To manually set the figure dimensions, you can insert an instruction into the curly braces: 
+  
+  *fig.width* and *fig.height* adjust size of rendered figures
+  
+_Tables_ Tables can be included in their raw format by calling the table, but they can also be beautified using *kable()* in the knitr package or *formattable()* in the formattable package. 
+
+_Text_ Finally, you can format text in the final rendered documents using the rules explained thoroughly in the [Formatting Style Guide](https://en.support.wordpress.com/markdown-quick-reference/). You can even format equations!
+
+
+## Short Example
+
+To begin, I always have a "setup" chunk. This is the best place to load packages. I usually use include=FALSE because loading packages always produces weird outputs and messages. This is also a good place to do things like _set a shared path, bring in outside functions, etc_ 
+
+For this example, we will use a dataset in the repurrrsive package.
+```{r setup,include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(repurrrsive)
+library(tibble)
+library(purrr)
+library(ggplot2)
+library(dplyr)
+library(forcats)
+library(knitr)
+library(kableExtra)
+library(formattable)
+```
+
+This dataset is a nested list of characters and their attributes. I clearly did not choose it for it's beautiful organization or wealth of informative variabiles, but it's certainly more fun than "cars" for the zillionth time. 
+
+```{r check if list,message=FALSE}
+is.list(got_chars)
+```
+
+Use purrr's map() to extract information from this nested list and put into a tibble. Print as tibble.As you can see, printing tibbles looks great when viewing in R Studio, but not so great in HTML. 
+
+### Tables in Markdown
+
+Below is an example of what the HTML output looks like when you simply print a tibble or dataframe. We'll just leave the list to its own devices... 
+
+```{r unlist,message=FALSE}
+characters<-as_tibble(map_df(got_chars, `[`, c("name", "gender", "culture", "alive")))
+characters
+```
+
+Here, we will use dplyr to summarise by "gender" and "alive" and print formatted table. I demonstrated both here. 
+
+```{r summary table,message=FALSE,fig.align = "center"}
+char_summary<-characters %>%
+  group_by(gender,alive) %>%
+  summarise(n=n()) %>%
+  mutate(proportion = (n/30)) %>%
+  mutate_at(4,round,2)
+
+kable(char_summary,align = rep("c",4)) %>%
+  add_header_above(c("Sorting Factors"=2,"",""))
+
+formattable(char_summary,align = rep("l",4))
+```
+**Table 1 Proportion of living and dead characters by gender in a random sample of GoT characters.** 
+
+### Figures in Markdown 
+
+Hide the code (note echo = FALSE below), but make a figure of the number of each characters of each culture. For something like this where some wrangling was required to format the plot exactly as I wanted, it is a good time to make the plotting into its own chunk, hide the code, and print the plot only.
+
+```{r create figure,echo=FALSE,message=FALSE,fig.align = "center"}
+char_culture <- characters %>%
+  group_by(culture) %>%
+  filter(!is.na(culture)) %>%
+  summarise(n=n()) %>%
+  filter(n<6)
+
+char_culture$Region = "Central Westeros"
+char_culture$Region[char_culture$culture == "Asshai" | char_culture$culture == "Norvoshi" | char_culture$culture == "Valyrian"] = "Essos"
+char_culture$Region[char_culture$culture == "Northmen" | char_culture$culture == "Free Folk" | char_culture$culture == "Andal"] = "The North"
+char_culture$Region[char_culture$culture == "Dornish" | char_culture$culture == "Reach" | char_culture$culture == "Stormlands"] = "The South"
+
+ggplot(char_culture,aes(fct_reorder(culture,n,.desc=T),n,fill=Region)) + 
+  geom_bar(stat = "identity") + ggtitle("Number of characters by culture") + 
+  xlab("Planetosi culture") + ylab("Number of characters (n)") + theme_bw() + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+        panel.background = element_blank()) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size = 13), 
+        axis.text.y = element_text(size=13), axis.title=element_text(size = 13)) +
+  scale_fill_manual(values = c("#5B8FA8FF","#800000FF","#767676FF","#FFB547FF"))
+```
+**Fig. 1 Culture (by region) of characters in random sample of GoT characters.** 
+
+Below the figure, I could discuss the key features I want the person looking at this document to make note of. Of course I can also say something about what I did, but didn't work, etc. 
+
+>For example, I originally tried to use if/else statements to assign region, but using simple base bracketing was much less verbose. 
+
+
