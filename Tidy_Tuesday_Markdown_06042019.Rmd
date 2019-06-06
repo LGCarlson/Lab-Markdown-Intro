@@ -1,0 +1,302 @@
+---
+title: 'Tidy Tuesday: Ramen Ratings'
+author: "LGCarlson"
+date: "6/6/2019"
+output: html_document
+---
+
+## What is R Markdown? 
+
+>"R Markdown allows you to create documents that serve as a record of your analysis. In the world of reproducible research, we want other researchers to easily understand what we did in our analysis, otherwise nobody can be certain that you analysed your data properly. **You might choose to create an RMarkdown document as an appendix to a paper or project assignment that you are doing, upload it to an online repository such as Github, or simply to keep as a personal record so you can quickly look back at your code and see what you did.** 
+>
+>RMarkdown presents your code alongside its output (graphs, tables, etc.) with conventional text to explain it, a bit like a notebook."
+>
+>RMarkdown uses Markdown syntax. Markdown is a very simple ‘markup’ language which provides methods for creating documents with headers, images, links etc. from plain text files, while keeping the original plain text file easy to read."
+>
+>-from [Coding Club](https://ourcodingclub.github.io/2016/11/24/rmarkdown-1.html)
+
+**Helpful resources:**
+
+* [Markdown documentation from R Studio](https://rmarkdown.rstudio.com/lesson-1.html)
+* [Comprehensive Markdown Guide](https://www.markdownguide.org/)
+* [Formatting Style Guide](https://en.support.wordpress.com/markdown-quick-reference/)
+* [Markdown Cheat Sheet](https://www.rstudio.com/wp-content/uploads/2016/03/rmarkdown-cheatsheet-2.0.pdf)
+
+
+## Why R Markdown? 
+### Pros
+
+* Reproducbility (both for others and your future self)
+* Did I mention reproducibility? With one click (literally), you can reproduce an entire analysis if your dataset is updated, etc 
+* Organization (where did I put that .csv or ggsave object?)
+* Share-ability (easily share or publish knitted files to HTML/RPubs)
+* Annotate-ability (now I'm just making these up... Markdown makes it easy to annotate your code)
+* Insert chunks of Python, Bash, SQL code
+* Treat chunks like functions
+* Make a website
+
+### Cons
+
+* Possible weird functionalities if you're using JAGS
+* Can't use setwd()... see [rant](https://yihui.name/knitr/faq/) (A5) as to why you shouldn't anyway
+* You might actually have more time in your day to do stuff... like working on that old paper you've been meaning to try and publish for years
+
+
+## First steps
+Install markdown using *install.packages("rmarkdown",dependencies = TRUE)*. Open a new markdown docuent by clicking the dropdown icon where you would normally go to create a new script. 
+
+```{r,message=FALSE}
+library(rmarkdown)
+```
+
+Above is our first chunk. If you're looking at this in R studio rather than in HTML, you'll see that code chunks are offset by the grave accents (```) at the beginning at end. The "r" inside curly brackets denotes that you're using R code, rather than another type of code. Inside the curly brackets, you can also name the chunk and add rules. 
+
+If you're looking at this in HTML, here is a reproduction of the structure of a chunk:
+># ```{r name of chunk here}
+># yourcode<-goes here
+># ```
+
+Chunks can be run alone by clicking the green arrow (far right icon if you're viewing in R Studio). You can also run all chunks above using the downward arrow (right center icon). Finally, you can run a markdown document like you would a normal script. All text outside of the code chunks will be ignored. No more adding and deleting # or seperating important things with #############. 
+
+
+## Parts of an R Markdown Document
+
+_YAML Header_ The first part of a markdown document is the YAML header, which is enclosed above and below by three dashes (---). You can edit this and set a variety of rules in the header that will alter the entire document. 
+
+Here is an example of what a standard YAML header looks like:
+> ---
+> title: 'Name of your Markdown Document'
+> author: "Your Name"
+> date: "6/6/2019"
+> output: html_document
+> ---
+
+_Chunks_ Within chunks, you can write and run code just like you would anywhere else. Within the curly brackets, you can title your chunks (ie: "setup" below). You will not see these titles in the rendered version of the document. You can also add rules here:
+
+  *include = FALSE* means that you do not want to include this code or its outputs in the rendered document (the code will still run).
+  
+  *echo = FALSE* means that you want to include the output in your rendered document, but you do not want to see the code. This is useful when you want to display a figure or table, but don't necessarily need to show the code you used to create it. 
+  
+  *warnings = FALSE* means "please do not show me "There were 50 warnings()" when I render this."
+  
+  *messages = FALSE* means that you don't want to see the various messages that pop up when your code runs (even the ones that are not errors), but you still want to see the code and output.
+  
+  *fig.align = "left,right,or center"* change the position of your rendered figure.
+  
+  You can use these rules alone or together. 
+  
+_Figures_ By default, RMarkdown will place graphs by maximising their height, while keeping them within the margins of the page and maintaining aspect ratio. If you have a particularly tall figure, this can mean a really huge graph. To manually set the figure dimensions, you can insert an instruction into the curly braces: 
+  
+  *fig.width* and *fig.height* adjust size of rendered figures
+  
+_Tables_ Tables can be included in their raw format by calling the table, but they can also be beautified using *kable()* in the knitr package or *formattable()* in the formattable package. 
+
+_Text_ Finally, you can format text in the final rendered documents using the rules explained thoroughly in the [Formatting Style Guide](https://en.support.wordpress.com/markdown-quick-reference/). You can even format equations!
+
+----
+
+## Tidy Tuesday Example
+
+To begin, I always have a "setup" chunk. This is the best place to load packages. I usually use include=FALSE because loading packages always produces weird outputs and messages. This is also a good place to do things like _set a shared path, bring in outside functions, etc_ 
+
+For this example, we will use the "ramen" ratings dataset of #tidytuesday. We will use packages in the tidyverse, as well as a few other related helpers. 
+
+```{r setup,include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(formattable)
+library(tidytext)
+library(broom)
+library(conflicted)
+check = function(x){summary(as.factor(x))}
+```
+
+
+### Metadata
+
+|variable      |class     |description |
+|:---|:---|:----------|
+|review_number |integer   | Ramen review number, increasing from 1 |
+|brand         |character | Brand of the ramen |
+|variety       |character | The ramen variety, eg a flavor, style, ingredient |
+|style         |character | Style of container (cup, pack, tray, |bowl, box, restaurant, can, bar)
+|country       |character | Origin country of the ramen brand |
+|stars         |double    | 0-5 rating of the ramen, 5 is best, 0 is worst |
+
+If you're looking at this in markdown, the table above will look quite ugly. If you're looking at it in HTML however, it will look very clean and neat! 
+
+Download data from Git. 
+```{r}
+ramen_ratings <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-06-04/ramen_ratings.csv")
+```
+
+#### Tidyverse Conflicts
+
+There is one less than ideal quality of loading the entire tidyverse (often I only load dplyr for this very reason). Dplyr, plyr, tidyr, and stats have some conflicts (non-uniquely named functions). Depending on the order you load them in the library (or if you load the entire tidyverse), you may run into this. The easiest way to deal with this is to always [load dplyr last](https://stackoverflow.com/questions/31644739/loading-dplyr-after-plyr-is-causing-issues). 
+
+However, the most sure-fire way to deal with this is to use the ["conflicted"](https://www.tidyverse.org/articles/2018/06/conflicted/) package to point out where you duplicated function names may be causing you issues. For example, if you call "filter", conflicted will write a message in your output.
+
+>Error: [conflicted] `filter` found in 2 packages. Either pick the one you want with `::` * dplyr::filter * stats::filter Or declare a preference with `conflict_prefer()` * conflict_prefer("filter", "dplyr") * conflict_prefer("filter", "stats")
+
+To remedy this, you can use the "conflict_prefer" function to tell R which package you want to use when you call a specific function.
+
+```{r, message=TRUE}
+conflict_prefer("filter","dplyr")
+
+ramen_ratings %>%
+  filter(stars >= 3.75 & country == "Canada")
+```
+
+
+Another way to do this is to use double colons to explictly refer to the package within the pipe. This can be quite verbose, but can also be useful if you need to alternate between functions/packages.
+```{r}
+ramen_ratings %>%
+  dplyr::filter(stars >= 4.25 & country == "Vietnam")
+```
+
+
+### Tidy Wrangling
+If you want more information about what dplyr is doing here, you can load the package "tidylog" to provide messages about each step, but note that it has some annoying conflicts. 
+
+I'll provide a brief explanation of what each step is doing: (except for the very self-explanatory ones)
+
+* gather - go from wide to long format, the "category" is the current column headers, the "value" is the contents of each cell, the minus signs means "don't include this column when gathering"
+
+* group_by - group your data by any the levels of any variable
+
+* top_n - select the top (15 in our case) cases
+
+* mutate - add (or overwrite) a column called "value" and do something to it. In this case, we are using fct_reorder from "forcats" to order our values by n. 
+ 
+* facet_wrap - facets by category, scales = are scales shared across all facets (the default, "fixed"), or do they vary across rows ("free_x"), columns ("free_y"), or both rows and columns ("free")?
+
+The code for this wrangling/figure is from [@drob](https://github.com/dgrtwo/data-screencasts). The rest of the analysis was inspired by his screencast.
+
+```{r}
+ramen_ratings %>%
+  gather(category,value, -review_number, -stars) %>%
+  count(category, value) %>%
+  group_by(category) %>%
+  top_n(15,n) %>%
+  ungroup() %>%
+  mutate(value = fct_reorder(value,n)) %>%
+  ggplot(aes(value,n)) + 
+  geom_col() + 
+  facet_wrap(~category, scales = "free_y") + 
+  coord_flip()
+```
+
+Those are some ugly plots, but what I wanted to know was if there was a lot of redundancy among these categories, which there is not. 
+
+### Mining for proteins
+
+Here, we will use tidy text techniques to mine the "variety" name for details about this ramen. More on [tidytext](https://www.tidytextmining.com/tidytext.html). 
+
+* filter - remove all instances where the ramen does not have a star value assigned 
+
+* unnest_tokens - take apart the variety column and put each piece in a column called "word"
+
+* summarise - calculate the mean star value associated with each word, count the n
+
+* arrange the word values in descending order by n
+
+* print first 10 values in this table. 
+```{r}
+ramen_ratings %>%
+  filter(!is.na(stars)) %>%
+  unnest_tokens(word,variety) %>%
+  group_by(word) %>%
+  summarise(avg_rating = mean(stars),n = n()) %>%
+  arrange(desc(n)) %>%
+  head(n = 10)
+```
+
+I went through the table and picked out all the words associated with meats. I'm sure you could automate this, but I did it by hand for this example. I made a vector of all the meat possibilities. 
+```{r}
+meatsvector<-c(as.character(expression(beef, carne, pork, bacon, chicken, chikin, pollo, duck, shrimp, crab, abalone, lobster, fish, scallop, clam, oyster, anchovy, seafood, prawn)))
+```
+
+I filtered the original text_mined dataset to include any ramen that included a word in meatsvector. 
+
+* rename - renames the column "word" and calls it "meat" - so basically its backwards of how I would think you'd rename somthing, but okay. 
+
+* mutate_at - rounds the values in column 2 to position 2
+
+* formattable - creates a fancy looking table 
+
+```{r}
+ramen_ratings %>%
+  filter(!is.na(stars)) %>%
+  unnest_tokens(word,variety) %>%
+  filter(word %in% meatsvector) %>%
+  group_by(word) %>%
+  summarise(avg_rating = mean(stars),n = n()) %>%
+  arrange(desc(n)) %>%
+  rename("meat" = "word") %>% 
+  mutate_at(2,round,2) %>%
+formattable(align = rep("l",3), list(`avg_rating` = color_bar(color = "lightgray", fun = "proportion")))
+```
+
+Select the ramens that have a meat in their name. Rename the column "word" to variety. 
+
+```{r}
+ramen_by_protein<-ramen_ratings %>%
+  filter(!is.na(stars)) %>%
+  unnest_tokens(word,variety) %>%
+  filter(word %in% meatsvector) %>%
+  rename("variety" = "word") 
+```
+
+Select the ramens that DO NOT have a meat in their name. We do this by using "anti_join" which selects all the ramen reviews that are not in the "ramen by protein" table. Assign the column "variety" to contain "other." 
+
+```{r}
+ramen_no_protein<-ramen_ratings %>%
+  anti_join(ramen_by_protein, by = "review_number") %>%
+  mutate(variety = "other")
+```
+
+
+Bind these two datasets back together, and relevel to set "other" as the reference group. 
+```{r}
+ramen_ratings_processed<-bind_rows(ramen_by_protein,ramen_no_protein) %>%
+  mutate(variety = fct_relevel(variety, "other"))
+```
+
+### Modeling with broom
+
+Library ["broom"](http://varianceexplained.org/r/broom-intro/) helps make your model outputs more usable. 
+
+Here, I wrote the a lm, then used the function "tidy" in broom to save the model output to a tibble. I removed the "intercept", arranged the estimates in descending order, then plotted the estimates and their confidence intervals. 
+
+```{r}
+lm(stars ~ variety, ramen_ratings_processed) %>%
+  tidy(conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  arrange(desc(estimate)) %>%
+  mutate(term = fct_reorder(term,estimate)) %>%
+  ggplot(aes(estimate,term)) + 
+  geom_point() + 
+  geom_errorbarh(aes(xmin = conf.low, xmax = conf.high)) + 
+  geom_vline(lty = 2, xintercept = 0) + 
+  labs(x = "Estimated effect on ramen rating", y = "", title = "Protein type as a predictor of ramen rating", subtitle = "Varieties without named protein are used as the reference level") +
+  theme_bw()
+        
+  
+```
+
+
+Conclusion: People like misspelled meat names (yeah, I'm talking about you "chikin"), they don't want to know what unspecified mystery meats are in their ramen, or they simply prefer vegetarian ramen. 
+
+
+For fast reference, the tidyverse cheat sheets are really helpful: 
+
+* My personal favorite: [dplyr](https://www.rstudio.com/wp-content/uploads/2015/02/data-wrangling-cheatsheet.pdf) 
+
+* [R Markdown](https://rmarkdown.rstudio.com/lesson-15.html)
+
+* [forcats](https://github.com/rstudio/cheatsheets/blob/master/factors.pdf)
+
+* [purrr](https://github.com/rstudio/cheatsheets/blob/master/purrr.pdf)
+
