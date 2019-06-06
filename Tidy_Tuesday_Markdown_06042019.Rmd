@@ -290,7 +290,7 @@ lm(stars ~ variety, ramen_ratings_processed) %>%
 Conclusion: People like misspelled meat names (yeah, I'm talking about you "chikin"), they don't want to know what unspecified mystery meats are in their ramen, or they simply prefer vegetarian ramen. 
 
 
-For fast reference, the tidyverse cheat sheets are really helpful: 
+For quick reference, the tidyverse cheat sheets are really helpful:  
 
 * My personal favorite: [dplyr](https://www.rstudio.com/wp-content/uploads/2015/02/data-wrangling-cheatsheet.pdf) 
 
